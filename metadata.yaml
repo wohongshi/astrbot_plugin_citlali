@@ -1,0 +1,6 @@
+name: astrbot_plugin_citlali
+display_name: 茜特菈莉·好感度系统
+desc: 茜特菈莉角色扮演完整方案：好感度系统、日程时段、群聊增强、解锁内容、随机事件、每日日记、WebUI
+version: 4.0.0
+author: hongshi
+astrbot_version: ">=4.24.2"

@@ -1,0 +1,7 @@
+{
+  "embedding_provider_id": {
+    "description": "Embedding Provider（向量化用，推荐硅基流动 BAAI/bge-m3。留空自动选择）",
+    "type": "string",
+    "default": ""
+  }
+}

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>茜特菈莉·好感度系统</title>
+<style>
+:root{--bg:#0f0f1a;--card:#1a1a2e;--card2:#16213e;--accent:#e94560;--green:#4ecca3;--yellow:#f5c542;--purple:#a855f7;--blue:#3b82f6;--text:#e8e8e8;--text2:#8888aa;--border:rgba(255,255,255,0.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:16px;font-size:14px}
+h2{font-size:20px;margin-bottom:16px;color:var(--accent)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border-radius:10px;padding:16px;border:1px solid var(--border);text-align:center}
+.stat-card .value{font-size:28px;font-weight:700;color:var(--accent)}
+.stat-card .label{font-size:12px;color:var(--text2);margin-top:4px}
+.section{background:var(--card);border-radius:10px;padding:16px;margin-bottom:16px;border:1px solid var(--border)}
+.section h3{font-size:16px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:600}
+.badge-0{background:rgba(255,255,255,0.08);color:var(--text2)}.badge-1{background:rgba(59,130,246,0.15);color:var(--blue)}
+.badge-2{background:rgba(78,204,163,0.15);color:var(--green)}.badge-3{background:rgba(168,85,247,0.15);color:var(--purple)}
+.badge-4{background:rgba(245,197,66,0.15);color:var(--yellow)}.badge-5{background:rgba(233,69,96,0.15);color:var(--accent)}
+table{width:100%;border-collapse:collapse}th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:13px}
+th{color:var(--text2);font-size:11px;text-transform:uppercase}tr:hover{background:rgba(255,255,255,0.02)}
+.btn{padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{opacity:.8}
+.btn-sm{padding:3px 8px;font-size:11px}.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border)}
+input[type="text"],input[type="number"],select{background:rgba(255,255,255,0.04);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:13px;width:100%}
+.form-group{margin-bottom:10px}.form-group label{display:block;font-size:12px;color:var(--text2);margin-bottom:3px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.toggle{position:relative;width:40px;height:22px;cursor:pointer}.toggle input{opacity:0;width:0;height:0}
+.toggle .slider{position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.1);border-radius:11px;transition:.3s}
+.toggle input:checked+.slider{background:var(--green)}.toggle .slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:white;border-radius:50%;transition:.3s}
+.toggle input:checked+.slider:before{transform:translateX(18px)}
+.tab-bar{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;background:var(--card);color:var(--text2);border:1px solid transparent}
+.tab.active{background:var(--accent);color:white}
+.page{display:none}.page.active{display:block}
+.progress{width:100px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle}
+.progress .fill{height:100%;border-radius:3px;background:var(--accent)}
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);display:none;z-index:100;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}.modal{background:var(--card);border-radius:14px;padding:20px;width:90%;max-width:480px;max-height:80vh;overflow-y:auto}
+.empty{text-align:center;padding:30px;color:var(--text2)}
+</style>
+</head>
+<body>
+<h2>✦ 茜特菈莉·好感度系统</h2>
+<div class="tab-bar">
+  <div class="tab active" data-tab="overview" onclick="nav('overview')">📊 总览</div>
+  <div class="tab" data-tab="users" onclick="nav('users')">👥 用户</div>
+  <div class="tab" data-tab="schedule" onclick="nav('schedule')">🌙 日程</div>
+  <div class="tab" data-tab="settings" onclick="nav('settings')">⚙️ 设置</div>
+</div>
+
+<!-- 总览 -->
+<div class="page" id="page-overview">
+  <div class="stats-grid">
+    <div class="stat-card"><div class="value" id="s-users">-</div><div class="label">总用户</div></div>
+    <div class="stat-card"><div class="value" id="s-msgs">-</div><div class="label">总对话</div></div>
+    <div class="stat-card"><div class="value" id="s-window" style="font-size:18px">-</div><div class="label" id="s-activity">当前时段</div></div>
+    <div class="stat-card"><div class="value" id="s-traveler">-</div><div class="label">旅行者</div></div>
+  </div>
+  <div class="section"><h3>📈 关系分布</h3><div id="stage-chart"></div></div>
+</div>
+
+<!-- 用户 -->
+<div class="page" id="page-users">
+  <div class="section">
+    <h3>👥 用户管理</h3>
+    <input type="text" id="userSearch" placeholder="搜索用户..." oninput="filterUsers()" style="margin-bottom:12px">
+    <table><thead><tr><th>#</th><th>用户</th><th>关系</th><th>好感</th><th>进度</th><th>对话</th><th>操作</th></tr></thead><tbody id="userTable"></tbody></table>
+  </div>
+</div>
+
+<!-- 日程 -->
+<div class="page" id="page-schedule">
+  <div class="section">
+    <h3>🌙 日程配置 <button class="btn btn-primary btn-sm" onclick="saveSchedule()" style="margin-left:auto">保存</button></h3>
+    <div id="scheduleEditor"></div>
+  </div>
+</div>
+
+<!-- 设置 -->
+<div class="page" id="page-settings">
+  <div class="section">
+    <h3>⚙️ 功能开关 <button class="btn btn-primary btn-sm" onclick="saveSettings()" style="margin-left:auto">保存</button></h3>
+    <div id="settingsToggles"></div>
+  </div>
+  <div class="section"><h3>💕 好感度参数</h3><div id="settingsAffinity"></div></div>
+  <div class="section"><h3>💬 群聊参数</h3><div id="settingsGroup"></div></div>
+  <div class="section"><h3>🌍 时区</h3><div id="settingsTimezone"></div></div>
+</div>
+
+<!-- 用户详情弹窗 -->
+<div class="modal-bg" id="userModal">
+  <div class="modal"><h3 id="modalTitle">用户详情</h3><div id="modalBody"></div>
+    <div style="margin-top:12px;text-align:right"><button class="btn btn-ghost" onclick="closeModal()">关闭</button></div>
+  </div>
+</div>
+
+<script type="module">
+const bridge = window.AstrBotPluginPage;
+const ctx = await bridge.ready();
+async function api(path, opts={}){const m=opts.method||'GET';let r;if(m==='GET'){r=await bridge.apiGet(path,opts.params||{})}else{r=await bridge.apiPost(path,opts.body||{})}if(r&&r.status==='ok')return r.data;if(r&&r.status==='error'){console.error(r.message);return{}}return r}
+window.nav=function(p){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelector(`.tab[data-tab="${p}"]`).classList.add('active');document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');if(p==='overview')loadOverview();if(p==='users')loadUsers();if(p==='schedule')loadSchedule();if(p==='settings')loadSettings()};
+
+let allUsers=[];
+async function loadOverview(){const d=await api('overview');document.getElementById('s-users').textContent=d.stats?.total_users??'-';document.getElementById('s-msgs').textContent=d.stats?.total_messages??'-';if(d.schedule){document.getElementById('s-window').textContent=d.schedule.window_name||'-';document.getElementById('s-activity').textContent=d.schedule.activity||'-'}document.getElementById('s-traveler').textContent=d.stats?.stage_counts?.['旅行者']||0;const chart=document.getElementById('stage-chart');const stages=d.stats?.stage_counts||{};const max=Math.max(...Object.values(stages),1);chart.innerHTML=Object.entries(stages).map(([n,c])=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:50px;font-size:12px;color:var(--text2)">${n}</span><div style="flex:1;height:16px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden"><div style="height:100%;width:${c/max*100}%;background:var(--accent);border-radius:3px"></div></div><span style="width:24px;text-align:right;font-size:12px">${c}</span></div>`).join('')}
+async function loadUsers(){const d=await api('users');allUsers=d.users||[];renderUsers(allUsers)}
+function renderUsers(u){document.getElementById('userTable').innerHTML=u.length?u.map((x,i)=>`<tr><td>${i+1}</td><td>${x.nickname||x.user_id.slice(0,10)}</td><td><span class="badge badge-${['陌生人','熟人','朋友','好友','知己','旅行者'].indexOf(x.stage)}">${x.stage}</span></td><td><strong>${x.affinity}</strong></td><td><div class="progress"><div class="fill" style="width:${Math.min(100,x.affinity/15)}%"></div></div></td><td>${x.total_messages}</td><td><button class="btn btn-primary btn-sm" onclick="openUser('${x.user_id}')">详情</button></td></tr>`).join(''):'<tr><td colspan="7" class="empty">暂无用户</td></tr>'}
+window.filterUsers=function(){const q=document.getElementById('userSearch').value.toLowerCase();renderUsers(allUsers.filter(u=>(u.nickname||'').toLowerCase().includes(q)||u.user_id.toLowerCase().includes(q)))};
+window.openUser=async function(uid){const u=await api('user/detail',{params:{user_id:uid}});const prog=u.next_threshold?((u.affinity-u.current_threshold)/(u.next_threshold-u.current_threshold)*100).toFixed(0):100;document.getElementById('modalTitle').textContent=u.nickname||uid;document.getElementById('modalBody').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--text2)">好感度</div><div style="font-size:24px;font-weight:700;color:var(--accent)">${u.affinity}</div></div><div><div style="font-size:11px;color:var(--text2)">关系</div><span class="badge badge-${u.stage}">${u.stage_name}</span></div><div><div style="font-size:11px;color:var(--text2)">进度</div>${prog}%</div><div><div style="font-size:11px;color:var(--text2)">对话</div>${u.total_messages}</div></div><div style="margin-bottom:12px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">手动调整</div><div style="display:flex;gap:6px"><input type="number" id="adjVal" value="10" style="width:70px"><button class="btn btn-primary btn-sm" onclick="adjust('${uid}',1)">增加</button><button class="btn btn-ghost btn-sm" onclick="adjust('${uid}',-1)">减少</button></div></div>`;document.getElementById('userModal').classList.add('show')};
+window.adjust=async function(uid,s){const v=parseInt(document.getElementById('adjVal').value)||0;if(!v)return;await api('user/adjust',{method:'POST',body:{user_id:uid,amount:v*s,reason:'manual'}});openUser(uid);loadUsers();loadOverview()};
+window.closeModal=()=>document.getElementById('userModal').classList.remove('show');
+async function loadSchedule(){const d=await api('schedule/get');const s=d.schedule||{};const slugs=['late_night','morning','noon','afternoon','evening'];const names={late_night:'🌙 深夜',morning:'🌅 早晨',noon:'☀️ 中午',afternoon:'🌤️ 下午',evening:'🌆 晚上'};document.getElementById('scheduleEditor').innerHTML=slugs.map(slug=>{const w=s[slug]||{};return`<div style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:10px"><h4 style="margin-bottom:8px;color:var(--accent)">${names[slug]}</h4><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="form-group"><label>起始</label><input type="number" id="sch-${slug}-start" value="${w.start||0}" min="0" max="23"></div><div class="form-group"><label>结束</label><input type="number" id="sch-${slug}-end" value="${w.end||0}" min="0" max="23"></div><div class="form-group"><label>活动</label><input type="text" id="sch-${slug}-activity" value="${w.activity||''}"></div><div class="form-group"><label>心情</label><input type="text" id="sch-${slug}-mood" value="${w.mood||''}"></div><div class="form-group"><label>位置</label><input type="text" id="sch-${slug}-location" value="${w.location||''}"></div><div class="form-group"><label>语态</label><input type="text" id="sch-${slug}-voice" value="${w.voice_style||''}"></div></div></div>`}).join('')}
+window.saveSchedule=async function(){const slugs=['late_night','morning','noon','afternoon','evening'];const data={};slugs.forEach(s=>{data[s]={start:+document.getElementById(`sch-${s}-start`).value,end:+document.getElementById(`sch-${s}-end`).value,activity:document.getElementById(`sch-${s}-activity`).value,mood:document.getElementById(`sch-${s}-mood`).value,location:document.getElementById(`sch-${s}-location`).value,voice_style:document.getElementById(`sch-${s}-voice`).value}});await api('schedule/save',{method:'POST',body:data});alert('已保存')};
+async function loadSettings(){const d=await api('settings/get');const s=d.settings||{};const toggles=[{key:'affinity_enabled',label:'好感度系统'},{key:'inject_context',label:'上下文注入'},{key:'decay_enabled',label:'每日衰减'},{key:'upgrade_notify',label:'升级通知'},{key:'time_schedule_enabled',label:'日程系统'},{key:'special_dates_enabled',label:'特殊日期'},{key:'react_mode_enabled',label:'群聊React'}];document.getElementById('settingsToggles').innerHTML=toggles.map(t=>`<div class="toggle-row"><span>${t.label}</span><label class="toggle"><input type="checkbox" id="s-${t.key}" ${s[t.key]?'checked':''}><span class="slider"></span></label></div>`).join('');const thresholds=s.stage_thresholds||[0,50,150,400,800,1500];const sn=['陌生人','熟人','朋友','好友','知己','旅行者'];document.getElementById('settingsAffinity').innerHTML=`<div style="margin-bottom:10px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">阶段阈值</div><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">${sn.map((n,i)=>`<div><div style="font-size:10px;color:var(--text2);text-align:center">${n}</div><input type="number" id="s-stage-${i}" value="${thresholds[i]}" style="text-align:center"></div>`).join('')}</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="form-group"><label>对话 最小</label><input type="number" id="s-daily_chat_min" value="${s.daily_chat_min||5}"></div><div class="form-group"><label>对话 最大</label><input type="number" id="s-daily_chat_max" value="${s.daily_chat_max||15}"></div><div class="form-group"><label>签到 最小</label><input type="number" id="s-checkin_min" value="${s.checkin_min||15}"></div><div class="form-group"><label>签到 最大</label><input type="number" id="s-checkin_max" value="${s.checkin_max||30}"></div><div class="form-group"><label>签到冷却(h)</label><input type="number" id="s-checkin_cooldown_hours" value="${s.checkin_cooldown_hours||24}"></div></div>`;document.getElementById('settingsGroup').innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div class="form-group"><label>React冷却(秒)</label><input type="number" id="s-react_cooldown_seconds" value="${s.react_cooldown_seconds||30}"></div></div>`;const tz=[{v:8,l:'UTC+8 北京'},{v:9,l:'UTC+9 东京'},{v:0,l:'UTC+0 伦敦'},{v:-5,l:'UTC-5 纽约'}];const ctz=s.timezone_offset??8;document.getElementById('settingsTimezone').innerHTML=`<div class="form-group"><label>时区</label><select id="s-timezone_offset">${tz.map(o=>`<option value="${o.v}" ${o.v===ctz?'selected':''}>${o.l}</option>`).join('')}<option value="custom" ${!tz.some(o=>o.v===ctz)?'selected':''}>自定义 UTC+${ctz}</option></select></div><div class="form-group"><label>或直接输入</label><input type="number" id="s-timezone_offset_manual" value="${ctz}" min="-12" max="12"></div>`}
+window.saveSettings=async function(){const data={};['affinity_enabled','inject_context','decay_enabled','upgrade_notify','time_schedule_enabled','special_dates_enabled','react_mode_enabled'].forEach(k=>{data[k]=document.getElementById('s-'+k)?.checked??true});data.react_cooldown_seconds=+(document.getElementById('s-react_cooldown_seconds')?.value)||30;data.stage_thresholds=[0,1,2,3,4,5].map(i=>+(document.getElementById('s-stage-'+i)?.value)||[0,50,150,400,800,1500][i]);data.daily_chat_min=+(document.getElementById('s-daily_chat_min')?.value)||5;data.daily_chat_max=+(document.getElementById('s-daily_chat_max')?.value)||15;data.checkin_min=+(document.getElementById('s-checkin_min')?.value)||15;data.checkin_max=+(document.getElementById('s-checkin_max')?.value)||30;data.checkin_cooldown_hours=+(document.getElementById('s-checkin_cooldown_hours')?.value)||24;const tzS=document.getElementById('s-timezone_offset')?.value;const tzM=+(document.getElementById('s-timezone_offset_manual')?.value);data.timezone_offset=(tzS==='custom'||!tzS)?(tzM||8):(+tzS||8);await api('settings/save',{method:'POST',body:data});alert('已保存');loadSettings()};
+loadOverview();
+</script>
+</body>
+</html>
