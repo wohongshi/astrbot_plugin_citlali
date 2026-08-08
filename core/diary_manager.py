@@ -44,15 +44,14 @@ class DiaryManager:
         user_data = self._data.get(user_id, {})
         return user_data.get("last_diary_date") != today
 
-    async def write_diary(self, user_id: str, context: str = "") -> Optional[str]:
+    async def write_diary(self, user_id: str, context: str = "", recent_events: list = None) -> Optional[str]:
         """
         生成今日日记。
-        使用 LLM 从茜特菈莉的第一人称视角写。
+        使用 AstrBot 默认 LLM，包含最近事件。
         """
         today = datetime.now().strftime("%Y-%m-%d")
         now = datetime.now()
 
-        # 时段
         hour = now.hour
         if 23 <= hour or hour < 6:
             time_of_day = "深夜"
@@ -65,25 +64,32 @@ class DiaryManager:
         else:
             time_of_day = "晚上"
 
-        # 构建提示
+        # 构建最近事件文本
+        events_text = ""
+        if recent_events:
+            events_text = "\n最近发生的事：\n"
+            for e in recent_events:
+                events_text += f"- {e.get('title', '')}: {e.get('narrative', '')}\n"
+
         prompt_parts = [
             f"你是茜特菈莉，原神中的「黑曜石奶奶」，烟谜主的大萨满，活了两百多年的萨满兼轻小说宅女。",
-            f"现在是{today}的{time_of_day}。请以你的视角写一篇简短的日记（150-250字）。",
+            f"现在是{today}的{time_of_day}。请以你的视角写一篇日记（200-400字）。",
             f"要求：",
-            f"- 第一人称，语气懒散、傲娇",
-            f"- 可以写今天做了什么、看了什么小说、喝了什么酒、想起了什么",
+            f"- 第一人称，语气懒散、傲娇，偶尔感性",
+            f"- 写今天做了什么、看了什么小说、喝了什么酒、想起了什么",
             f"- 偶尔提到「那个人」（旅行者），但不要说太直白",
-            f"- 可以写一点内心独白，但不要太煽情",
-            f"- 用中文写",
+            f"- 可以写一点内心独白，可以写维奇琳、欧洛伦",
+            f"- 要有细节，比如窗外的风、酒的味道、书里的情节",
+            f"- 用中文写，不要加标题",
         ]
 
-        if context:
-            prompt_parts.append(f"\n今天的背景：{context}")
+        if events_text:
+            prompt_parts.append(f"\n{events_text}")
 
         prompt = "\n".join(prompt_parts)
 
+        # 使用 AstrBot 默认 LLM
         diary_text = None
-        # 日记使用 AstrBot 默认模型
         try:
             if self._ctx and hasattr(self._ctx, 'get_using_provider'):
                 provider = self._ctx.get_using_provider()
@@ -93,15 +99,17 @@ class DiaryManager:
                         resp = await self._ctx.llm_generate(
                             chat_provider_id=pid,
                             prompt=prompt,
-                            system_prompt="你是茜特菈莉。用第一人称写日记，语气懒散傲娇。",
+                            system_prompt="你是茜特菈莉。用第一人称写日记，语气懒散傲娇，要有细节和情感。",
                         )
                         diary_text = resp.completion_text if hasattr(resp, 'completion_text') else str(resp)
+                        if diary_text:
+                            diary_text = diary_text.strip()
         except Exception as e:
             logger.warning(f"[Citlali] 日记生成失败: {e}")
 
         # 失败时使用备用模板
         if not diary_text:
-            diary_text = self._fallback_diary(time_of_day)
+            diary_text = self._fallback_diary(time_of_day, events_text)
 
         if not diary_text:
             return None
@@ -140,16 +148,28 @@ class DiaryManager:
         history = user_data.get("diary_history", [])
         return list(reversed(history[-limit:]))
 
-    def _fallback_diary(self, time_of_day: str) -> str:
-        """LLM 不可用时的备用日记"""
+    def _fallback_diary(self, time_of_day: str, context: str = "") -> str:
+        """LLM 不可用时的备用日记（更长、更丰富）"""
+        import random
+
+        # 基础模板
         templates = [
-            f"{time_of_day}。窝在沙发上看小说，酒瓶又空了两本。窗外的风跟纳塔的不一样——但我说不上来哪里不同。算了，继续看书。",
-            f"{time_of_day}。《蜃楼战记》又更新了，虽然换了个作者，但东之山君还是那个东之山君。有些东西变了，有些东西一直没变。就像我。",
-            f"{time_of_day}。翻到一本旧书，夹着一张很久以前的书签。不记得是谁送的了。……不，我记得。只是不想说。",
-            f"{time_of_day}。天气不错，适合发呆。想出门走走，但走到门口又回来了。外面太吵了。还是家里好。",
-            f"{time_of_day}。欧洛伦来过了，问了一堆有的没的。我骂了他一顿，他走了。……走了之后又觉得太安静了。",
+            f"{time_of_day}。窝在沙发上看小说，酒瓶又空了两本。窗外的风跟纳塔的不一样——但我说不上来哪里不同。算了，继续看书。偶尔会想，要是有人能陪我一起看就好了。不过那样的话，我就不能一边看一边吐槽作者了。",
+            f"{time_of_day}。《蜃楼战记》又更新了，虽然换了个作者，但东之山君还是那个东之山君。有些东西变了，有些东西一直没变。就像我。两百年了，还是喜欢窝在家里看书喝酒。外面的世界变了好多，但我懒得去看。",
+            f"{time_of_day}。翻到一本旧书，夹着一张很久以前的书签。不记得是谁送的了。……不，我记得。只是不想说。维奇琳以前总说我书太多，该扔掉一些。我没扔。有些东西扔了就真的没了。",
+            f"{time_of_day}。天气不错，适合发呆。想出门走走，但走到门口又回来了。外面太吵了。还是家里好。欧洛伦那小子说要来看我，被我骂回去了。……其实他来了也好，至少有人说话。",
+            f"{time_of_day}。深夜了，星星很亮。我坐在窗边喝酒，想起很多年前的事。那时候维奇琳还在，我们一起看过星星。她说星星是死人的眼睛。我说那我认识的死人也太多了。她笑了。我也笑了。",
+            f"{time_of_day}。又做了一个梦。梦到自己在一个很远的地方，身边一个人都没有。醒来的时候枕头是湿的。……大概是酒洒了吧。对，一定是酒洒了。",
+            f"{time_of_day}。八重堂的新书到了，我一口气看完了。结局不太好，女主最后一个人走了。我合上书，沉默了很久。有时候觉得，书里的角色比我活得明白。至少她们知道自己想要什么。",
         ]
-        return random.choice(templates)
+
+        base = random.choice(templates)
+
+        # 如果有最近事件，追加
+        if context:
+            base += f"\n\n{context}"
+
+        return base
 
 
 def render_diary_image(text: str, date: str = "") -> Optional[bytes]:

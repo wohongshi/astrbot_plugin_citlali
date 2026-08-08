@@ -8,6 +8,7 @@
 - 主动回复由 enhance_mode 插件提供
 """
 import asyncio
+import os
 import random
 import time
 from datetime import datetime
@@ -222,17 +223,66 @@ class CitlaliAffinityPlugin(Star):
     async def cmd_divination(self, event: AstrMessageEvent):
         user_id = event.get_sender_id()
         self.affinity_mgr.add_affinity(user_id, "topic_divination")
-        fortunes = [
-            ["诸恶曜必不会伤害你，诸吉星必环绕你。", "近日会有好事发生。"],
-            ["星象显示，你最近身边有小人。", "不过别担心，奶奶我会帮你盯着。"],
-            ["你的命运线很亮。", "但要注意，不要在深夜做重大决定。"],
-            ["嗯，你最近丢了什么东西吧？", "别急，三天后会自己冒出来的。"],
-            ["你面前有三条路。走中间那条——虽然最慢，但最稳。"],
-            ["你的「盟友」很强。放心往前走。", "有奶奶我在后面看着。"],
-            ["今天的星象不太好。", "你出门右转注意脚下，别摔着。"],
-        ]
-        for m in random.choice(fortunes):
-            yield event.plain_result(m)
+
+        # 每日一次限制
+        import json
+        divination_data_path = os.path.join(self.data_dir, "divination_data.json")
+        divination_data = {}
+        try:
+            if os.path.exists(divination_data_path):
+                with open(divination_data_path, "r") as f:
+                    divination_data = json.load(f)
+        except Exception:
+            pass
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        last_date = divination_data.get(user_id, "")
+
+        if last_date == today:
+            yield event.plain_result("（瞥了你一眼）今天已经给你占卜过了。")
+            yield event.plain_result("贪心可不是好习惯，后辈。明天再来吧。")
+            return
+
+        # 尝试用 LLM 生成
+        fortune_text = None
+        try:
+            if hasattr(self.ctx, 'get_using_provider'):
+                provider = self.ctx.get_using_provider()
+                if provider:
+                    pid = getattr(provider, 'provider_id', None) or getattr(provider, 'id', None)
+                    if pid:
+                        resp = await self.ctx.llm_generate(
+                            chat_provider_id=pid,
+                            prompt="你是茜特菈莉，原神中的黑曜石奶奶，一个活了两百多年的萨满。请为对方写一段占卜结果（50-100字），用萨满的神秘口吻，语气傲娇但关心。可以提到星象、命运线、盟友、恶曜等元素。用中文写，不要加标题。",
+                            system_prompt="你是茜特菈莉，用萨满的神秘口吻写占卜结果。",
+                        )
+                        fortune_text = resp.completion_text if hasattr(resp, 'completion_text') else str(resp)
+                        if fortune_text:
+                            fortune_text = fortune_text.strip()
+        except Exception as e:
+            logger.warning(f"[Citlali] 占卜LLM生成失败: {e}")
+
+        # LLM 失败时使用内置文本
+        if not fortune_text:
+            fortunes = [
+                ["诸恶曜必不会伤害你，诸吉星必环绕你。", "近日会有好事发生。"],
+                ["星象显示，你最近身边有小人。", "不过别担心，奶奶我会帮你盯着。"],
+                ["你的命运线很亮。", "但要注意，不要在深夜做重大决定。"],
+                ["嗯，你最近丢了什么东西吧？", "别急，三天后会自己冒出来的。"],
+                ["你面前有三条路。走中间那条——虽然最慢，但最稳。"],
+                ["你的「盟友」很强。放心往前走。", "有奶奶我在后面看着。"],
+                ["今天的星象不太好。", "你出门右转注意脚下，别摔着。"],
+            ]
+            for m in random.choice(fortunes):
+                yield event.plain_result(m)
+        else:
+            yield event.plain_result(fortune_text)
+
+        # 记录今天已占卜
+        divination_data[user_id] = today
+        os.makedirs(os.path.dirname(divination_data_path), exist_ok=True)
+        with open(divination_data_path, "w") as f:
+            json.dump(divination_data, f)
 
     @filter.command("小说")
     async def cmd_novel(self, event: AstrMessageEvent):
@@ -316,7 +366,9 @@ class CitlaliAffinityPlugin(Star):
         yield event.plain_result("……你要看我的日记？")
         yield event.plain_result("好吧。等我写一下。")
 
-        diary_text = await self.diary_mgr.write_diary(user_id)
+        # 获取最近事件作为日记素材
+        recent_events = self.event_mgr.get_recent_events(user_id, 3)
+        diary_text = await self.diary_mgr.write_diary(user_id, recent_events=recent_events)
         if diary_text:
             img_path = self._save_diary_image(diary_text)
             if img_path:
